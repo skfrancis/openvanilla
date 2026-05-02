@@ -1,6 +1,7 @@
 [submodule "src/eqlib"]
 	path = src/eqlib
 	url = https://github.com/redguides/eqlib.git
+	branch = live
 [submodule "contrib/vcpkg"]
 	path = contrib/vcpkg
 	url = https://github.com/microsoft/vcpkg.git
