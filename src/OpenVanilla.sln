@@ -529,6 +529,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2MeshManager", "..\plugin
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MQ2Collectible", "..\plugins\MQ2Collectible\MQ2Collectible.vcxproj", "{A853644B-6401-4DBF-B252-167A1DCDFB2E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221} = {2A0A06A4-E9C6-4229-82EE-BD2D4E0A7221}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Actors", "tests\Actors\Actors.vcxproj", "{86E7D2A2-C3E1-499A-800E-9557D292E0C2}"
 EndProject
