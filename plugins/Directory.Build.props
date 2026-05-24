@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- Per-submodule linker fixups that cannot be made in the submodule vcxproj -->
+  <ItemDefinitionGroup Condition="'$(MSBuildProjectName)' == 'MQ2LinkDB'">
+    <Link>
+      <!-- BCryptGenRandom is used by libcurl rand.c but not listed in MQ2LinkDB's deps -->
+      <AdditionalDependencies>bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>
