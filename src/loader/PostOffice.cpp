@@ -335,6 +335,36 @@ void SendForceUnloadAllCommand()
 	}
 }
 
+bool SendUnloadCommand(uint32_t processId)
+{
+	if (s_postOffice && processId != 0)
+	{
+		if (auto pipeConnection = s_postOffice->GetConnectionForProcessId(processId))
+		{
+			SPDLOG_INFO("LauncherPostOffice: Requesting to unload process {}", processId);
+			s_postOffice->SendPipeMessage(pipeConnection->GetConnectionId(),
+				mq::MQMessageId::MSG_MAIN_REQ_UNLOAD, nullptr, 0);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool SendForceUnloadCommand(uint32_t processId)
+{
+	if (s_postOffice && processId != 0)
+	{
+		if (auto pipeConnection = s_postOffice->GetConnectionForProcessId(processId))
+		{
+			SPDLOG_INFO("LauncherPostOffice: Requesting to FORCE unload process {}", processId);
+			s_postOffice->SendPipeMessage(pipeConnection->GetConnectionId(),
+				mq::MQMessageId::MSG_MAIN_REQ_FORCEUNLOAD, nullptr, 0);
+			return true;
+		}
+	}
+	return false;
+}
+
 void InitializePostOffice()
 {
 	if (s_postOffice == nullptr)

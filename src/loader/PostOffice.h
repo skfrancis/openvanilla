@@ -42,6 +42,8 @@ bool SendSelfMinRestore(HWND hWnd);
 bool SendSelfForeground(HWND hWnd);
 void SendUnloadAllCommand();
 void SendForceUnloadAllCommand();
+bool SendUnloadCommand(uint32_t processId);
+bool SendForceUnloadCommand(uint32_t processId);
 
 void SetPostOfficeIni(std::string_view ini);
 void SetCrashpadCallback(const GetCrashpadPipe& getCrashpad);

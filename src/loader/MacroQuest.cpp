@@ -1240,7 +1240,7 @@ static void ShowEqInstancesPanel()
 		std::erase_if(s_eqInstances, [](auto& i){ return i.state == EqInstanceState::Exited; });
 	}
 
-	if (ImGui::BeginTable("##EqInstances", 5,
+	if (ImGui::BeginTable("##EqInstances", 6,
 		ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
 		ImGuiTableFlags_BordersOuter | ImGuiTableFlags_ScrollY))
 	{
@@ -1249,7 +1249,8 @@ static void ShowEqInstancesPanel()
 		ImGui::TableSetupColumn("Window");
 		ImGui::TableSetupColumn("Character");
 		ImGui::TableSetupColumn("Status");
-		ImGui::TableSetupColumn("Action");
+		ImGui::TableSetupColumn("Inject");
+		ImGui::TableSetupColumn("Unload");
 		ImGui::TableHeadersRow();
 
 		std::lock_guard lock(s_eqInstancesMutex);
@@ -1271,12 +1272,27 @@ static void ShowEqInstancesPanel()
 			ImGui::TableSetColumnIndex(3);
 			ImGui::TextUnformatted(exited ? "Exited" : injected ? "Injected" : "Pending");
 
-			ImGui::TableSetColumnIndex(4);
 			ImGui::PushID((int)inst.pid);
+
+			ImGui::TableSetColumnIndex(4);
 			if (injected || exited) ImGui::BeginDisabled();
 			if (ImGui::SmallButton("Inject"))
 				{ Inject(inst.pid); inst.state = EqInstanceState::Injected; }
 			if (injected || exited) ImGui::EndDisabled();
+
+			ImGui::TableSetColumnIndex(5);
+			if (!injected) ImGui::BeginDisabled();
+			if (ImGui::SmallButton("Unload")) {
+				if (SendUnloadCommand(inst.pid))
+					{ inst.state = EqInstanceState::Pending; inst.charName.clear(); }
+			}
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Force")) {
+				if (SendForceUnloadCommand(inst.pid))
+					{ inst.state = EqInstanceState::Pending; inst.charName.clear(); }
+			}
+			if (!injected) ImGui::EndDisabled();
+
 			ImGui::PopID();
 
 			if (exited) ImGui::PopStyleColor();
