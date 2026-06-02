@@ -1187,7 +1187,7 @@ bool InitializeInjector(bool injectOnce)
 	s_injectorRunning = true;
 	s_injectorThread = std::thread(InjectorThread, injectOnce);
 
-	InjectAllRunningProcesses();
+	ScanExistingEqProcesses();   // defined in Phase 5
 	return true;
 }
 

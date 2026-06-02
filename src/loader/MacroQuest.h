@@ -107,6 +107,7 @@ std::vector<DWORD> GetAllEqGameSessions();
 bool ForceRemoteUnload();
 HWND GetEQWindowHandleForProcessId(DWORD processId);
 bool InitializeInjector(bool injectOnce);
+void ScanExistingEqProcesses();
 void RefreshInjections();
 void ShutdownInjector();
 std::string GetInjecteePath();

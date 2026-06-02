@@ -46,6 +46,7 @@
 #include <filesystem>
 #include <fstream>
 #include <future>
+#include <mutex>
 #include <tuple>
 #include <shellapi.h>
 #include <fcntl.h>
@@ -108,6 +109,18 @@ std::map<std::tuple<uint16_t, uint16_t>, HWND> hotkeyMap;
 uint32_t gFocusProcessID = 0;
 
 static std::set<uint32_t> s_processIds;
+
+enum class EqInstanceState { Pending, Injected, Exited };
+
+struct EqInstance {
+	uint32_t        pid      = 0;
+	HWND            hwnd     = nullptr;
+	std::string     charName;       // empty until post-char-select
+	EqInstanceState state    = EqInstanceState::Pending;
+};
+
+static std::mutex              s_eqInstancesMutex;
+static std::vector<EqInstance> s_eqInstances;
 
 static uint32_t s_taskbarRestart = 0;
 
@@ -729,16 +742,46 @@ void SetForegroundWindowInternal(HWND hWnd)
 	}
 }
 
+static void AddDiscoveredInstance(uint32_t processId)
+{
+	std::lock_guard lock(s_eqInstancesMutex);
+
+	// Guard against WMI + ToolHelp double-fire
+	for (auto& inst : s_eqInstances)
+		if (inst.pid == processId) return;
+
+	EqInstance inst;
+	inst.pid   = processId;
+	inst.hwnd  = GetEQWindowHandleForProcessId(processId);
+	inst.state = IsInjected(processId)
+	                 ? EqInstanceState::Injected
+	                 : EqInstanceState::Pending;
+	s_eqInstances.push_back(inst);
+}
+
+void ScanExistingEqProcesses()
+{
+	for (DWORD pid : GetAllEqGameSessions())
+	{
+		s_processIds.insert(pid);
+		AddDiscoveredInstance(pid);
+	}
+}
+
 void OnProcessAdded(uint32_t processId)
 {
 	s_processIds.insert(processId);
-	Inject(processId);
+	AddDiscoveredInstance(processId);
 }
 
 void OnProcessRemoved(uint32_t processId)
 {
 	AutoLoginRemoveProcess(processId);
 	s_processIds.erase(processId);
+
+	std::lock_guard lock(s_eqInstancesMutex);
+	for (auto& inst : s_eqInstances)
+		if (inst.pid == processId) { inst.state = EqInstanceState::Exited; break; }
 }
 
 LRESULT HandleHotkey(WPARAM wParam, LPARAM lParam)
@@ -1166,6 +1209,82 @@ struct PidInfo
 };
 
 
+static void ShowEqInstancesPanel()
+{
+	// Poll character names every 2 seconds (only works post-injection, post-char-select)
+	static auto lastCharPoll = std::chrono::steady_clock::now();
+	if (std::chrono::steady_clock::now() - lastCharPoll >= std::chrono::seconds(2)) {
+		lastCharPoll = std::chrono::steady_clock::now();
+		std::lock_guard lock(s_eqInstancesMutex);
+		for (auto& inst : s_eqInstances)
+			if (inst.state != EqInstanceState::Exited && inst.charName.empty())
+				inst.charName = GetLocalPlayer(inst.pid);
+	}
+
+	// "Inject All Pending" button
+	{
+		std::lock_guard lock(s_eqInstancesMutex);
+		int pending = 0;
+		for (auto& i : s_eqInstances) if (i.state == EqInstanceState::Pending) ++pending;
+
+		if (!pending) ImGui::BeginDisabled();
+		if (ImGui::Button("Inject All Pending"))
+			for (auto& i : s_eqInstances)
+				if (i.state == EqInstanceState::Pending)
+					{ Inject(i.pid); i.state = EqInstanceState::Injected; }
+		if (!pending) ImGui::EndDisabled();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Remove Exited")) {
+		std::lock_guard lock(s_eqInstancesMutex);
+		std::erase_if(s_eqInstances, [](auto& i){ return i.state == EqInstanceState::Exited; });
+	}
+
+	if (ImGui::BeginTable("##EqInstances", 5,
+		ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+		ImGuiTableFlags_BordersOuter | ImGuiTableFlags_ScrollY))
+	{
+		ImGui::TableSetupScrollFreeze(0, 1);
+		ImGui::TableSetupColumn("PID");
+		ImGui::TableSetupColumn("Window");
+		ImGui::TableSetupColumn("Character");
+		ImGui::TableSetupColumn("Status");
+		ImGui::TableSetupColumn("Action");
+		ImGui::TableHeadersRow();
+
+		std::lock_guard lock(s_eqInstancesMutex);
+		for (auto& inst : s_eqInstances) {
+			bool exited   = inst.state == EqInstanceState::Exited;
+			bool injected = inst.state == EqInstanceState::Injected;
+			if (exited) ImGui::PushStyleColor(ImGuiCol_Text,
+				ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0); ImGui::Text("%u", inst.pid);
+
+			char title[128] = "(no window)";
+			if (inst.hwnd && IsWindow(inst.hwnd))
+				GetWindowTextA(inst.hwnd, title, sizeof(title));
+			ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted(title);
+			ImGui::TableSetColumnIndex(2);
+			ImGui::TextUnformatted(inst.charName.empty() ? "--" : inst.charName.c_str());
+			ImGui::TableSetColumnIndex(3);
+			ImGui::TextUnformatted(exited ? "Exited" : injected ? "Injected" : "Pending");
+
+			ImGui::TableSetColumnIndex(4);
+			ImGui::PushID((int)inst.pid);
+			if (injected || exited) ImGui::BeginDisabled();
+			if (ImGui::SmallButton("Inject"))
+				{ Inject(inst.pid); inst.state = EqInstanceState::Injected; }
+			if (injected || exited) ImGui::EndDisabled();
+			ImGui::PopID();
+
+			if (exited) ImGui::PopStyleColor();
+		}
+		ImGui::EndTable();
+	}
+}
+
 void ShowProcessInfo()
 {
 	auto& loadedInstances = GetLoadedInstances();
@@ -1224,6 +1343,14 @@ void ShowProcessInfo()
 
 		ImGui::EndTable();
 	}
+}
+
+static void RefreshInjectedInstances()
+{
+	std::lock_guard lock(s_eqInstancesMutex);
+	for (auto& inst : s_eqInstances)
+		if (inst.state == EqInstanceState::Injected)
+			Inject(inst.pid);
 }
 
 void ShowMacroQuestMenu()
@@ -1342,7 +1469,7 @@ void ShowAdvancedMenu()
 	}
 
 	if (ImGui::MenuItem("Refresh Injections"))
-		RefreshInjections();
+		RefreshInjectedInstances();
 }
 
 #pragma region RedGuides
@@ -1676,6 +1803,7 @@ void InitializeWindows()
 	LauncherImGui::AddMainPanel("MacroQuest Info", ShowMacroQuestInfo);
 	LauncherImGui::AddMainPanel("Logging", ShowLoggingSettings);
 	LauncherImGui::AddMainPanel("Processes", ShowProcessInfo);
+	LauncherImGui::AddMainPanel("EQ Instances", ShowEqInstancesPanel);
 	LauncherImGui::AddContextGroup("##MacroQuest", ShowMacroQuestMenu);
 }
 
