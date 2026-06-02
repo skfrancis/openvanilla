@@ -1211,14 +1211,22 @@ struct PidInfo
 
 static void ShowEqInstancesPanel()
 {
-	// Poll character names every 2 seconds (only works post-injection, post-char-select)
+	// Poll character names every 2 seconds from the AutoLogin loaded instances map
 	static auto lastCharPoll = std::chrono::steady_clock::now();
 	if (std::chrono::steady_clock::now() - lastCharPoll >= std::chrono::seconds(2)) {
 		lastCharPoll = std::chrono::steady_clock::now();
+		const auto& loaded = GetLoadedInstances();
 		std::lock_guard lock(s_eqInstancesMutex);
-		for (auto& inst : s_eqInstances)
-			if (inst.state != EqInstanceState::Exited && inst.charName.empty())
-				inst.charName = GetLocalPlayer(inst.pid);
+		for (auto& inst : s_eqInstances) {
+			if (inst.state == EqInstanceState::Exited) continue;
+			inst.charName.clear();
+			for (const auto& [key, li] : loaded) {
+				if (li.PID == inst.pid) {
+					inst.charName = li.Character.empty() ? li.Server : li.Server + "/" + li.Character;
+					break;
+				}
+			}
+		}
 	}
 
 	// "Inject All Pending" button
@@ -1240,7 +1248,7 @@ static void ShowEqInstancesPanel()
 		std::erase_if(s_eqInstances, [](auto& i){ return i.state == EqInstanceState::Exited; });
 	}
 
-	if (ImGui::BeginTable("##EqInstances", 6,
+	if (ImGui::BeginTable("##EqInstances", 7,
 		ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
 		ImGuiTableFlags_BordersOuter | ImGuiTableFlags_ScrollY))
 	{
@@ -1249,7 +1257,8 @@ static void ShowEqInstancesPanel()
 		ImGui::TableSetupColumn("Window");
 		ImGui::TableSetupColumn("Character");
 		ImGui::TableSetupColumn("Status");
-		ImGui::TableSetupColumn("Inject");
+		ImGui::TableSetupColumn("Focus", ImGuiTableColumnFlags_WidthFixed);
+		ImGui::TableSetupColumn("Inject", ImGuiTableColumnFlags_WidthFixed);
 		ImGui::TableSetupColumn("Unload");
 		ImGui::TableHeadersRow();
 
@@ -1275,12 +1284,19 @@ static void ShowEqInstancesPanel()
 			ImGui::PushID((int)inst.pid);
 
 			ImGui::TableSetColumnIndex(4);
+			bool hasWindow = inst.hwnd && IsWindow(inst.hwnd);
+			if (!hasWindow) ImGui::BeginDisabled();
+			if (ImGui::SmallButton("Focus"))
+				SetForegroundWindowInternal(inst.hwnd);
+			if (!hasWindow) ImGui::EndDisabled();
+
+			ImGui::TableSetColumnIndex(5);
 			if (injected || exited) ImGui::BeginDisabled();
 			if (ImGui::SmallButton("Inject"))
 				{ Inject(inst.pid); inst.state = EqInstanceState::Injected; }
 			if (injected || exited) ImGui::EndDisabled();
 
-			ImGui::TableSetColumnIndex(5);
+			ImGui::TableSetColumnIndex(6);
 			if (!injected) ImGui::BeginDisabled();
 			if (ImGui::SmallButton("Unload")) {
 				if (SendUnloadCommand(inst.pid))
