@@ -1286,8 +1286,12 @@ static void ShowEqInstancesPanel()
 			ImGui::TableSetColumnIndex(4);
 			bool hasWindow = inst.hwnd && IsWindow(inst.hwnd);
 			if (!hasWindow) ImGui::BeginDisabled();
-			if (ImGui::SmallButton("Focus"))
-				SetForegroundWindowInternal(inst.hwnd);
+			if (ImGui::SmallButton("Focus")) {
+				// Direct foreground call — works for uninjected instances since the
+				// launcher holds foreground privilege at the moment of the click.
+				if (IsIconic(inst.hwnd)) ShowWindow(inst.hwnd, SW_RESTORE);
+				SetForegroundWindow(inst.hwnd);
+			}
 			if (!hasWindow) ImGui::EndDisabled();
 
 			ImGui::TableSetColumnIndex(5);
