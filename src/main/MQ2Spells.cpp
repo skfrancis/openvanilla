@@ -3699,7 +3699,7 @@ int GetPlayerClass(std::string_view name)
 	auto player_class = std::find_if(std::cbegin(ClassInfo), std::cend(ClassInfo),
 		[name](const SClassInfo& info)
 		{
-			return ci_equals(info.ShortName, name) || ci_equals(info.LongName, name);
+			return ci_equals(info.ShortName, name) || ci_equals(info.Name, name);
 		});
 
 	if (player_class != std::cend(ClassInfo))
@@ -3715,7 +3715,7 @@ int GetPlayerClass(std::string_view name)
 
 	if (player_class != std::cend(ClassInfo))
 	{
-		WriteChatf("\ayWARNING: SpellFilter: Matching a class by \"%.*s\" is deprecated; use \"%s\" instead.\ax", static_cast<int>(name.size()), name.data(), player_class->LongName);
+		WriteChatf("\ayWARNING: SpellFilter: Matching a class by \"%.*s\" is deprecated; use \"%s\" instead.\ax", static_cast<int>(name.size()), name.data(), player_class->Name);
 		return static_cast<int>(std::distance(std::cbegin(ClassInfo), player_class));
 	}
 

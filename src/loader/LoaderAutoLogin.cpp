@@ -24,7 +24,7 @@
 #include "mq/base/Config.h"
 #include "mq/base/String.h"
 
-#include "eqlib/game/ClassInfo.h"
+#include "eqlib/game/EQData.h"
 
 #include "fmt/format.h"
 #include "fmt/os.h"
