@@ -349,3 +349,6 @@
 	path = plugins/MQSearchItem
 	url = https://github.com/jessebevil/MQSearchItem
 	branch = main
+[submodule "contrib/luarocks"]
+	path = contrib/luarocks
+	url = https://github.com/luarocks/luarocks.git

@@ -77,11 +77,6 @@ jobs:
           echo "::error:: Target '${{ inputs.client_target }}' has no version_rev defined. Update the version revision map in the env block."
           exit 1
 
-      - name: "[Setup] Install and cache PowerShell modules"
-        uses: potatoqualitee/psmodulecache@v6.2.1
-        with:
-          modules-to-cache: powershell-yaml
-
       - name: "[Source] Checkout code"
         uses: actions/checkout@v6
 
@@ -105,7 +100,7 @@ jobs:
             git -C src/eqlib fetch --unshallow origin
             if ($LASTEXITCODE -ne 0) { exit 1 }
           }
-          git -C src/eqlib fetch origin $branch
+          git -C src/eqlib fetch origin "refs/heads/$branch`:refs/remotes/origin/$branch"
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
           git -C src/eqlib merge-base --is-ancestor HEAD "origin/$branch"
@@ -472,6 +467,12 @@ jobs:
           Get-ChildItem build/bin/Release -Include *.pdb -Recurse | Remove-Item -Force
           Get-ChildItem build/bin/Release -Include *.lib -Recurse | Remove-Item -Force
           Get-ChildItem build/bin/Release -Include *.exp -Recurse | Remove-Item -Force
+
+      - name: "[Package] Bundle LuaRocks tree"
+        if: env.vv_enabled == 'true'
+        shell: pwsh
+        run: |
+          python tools/build_scripts/build_luarocks_tree.py --mq-path build/bin/Release --arch ${{ env.platform == 'Win32' && 'x86' || 'x64' }}
 
       - name: "[Package] Sign Code"
         shell: pwsh
