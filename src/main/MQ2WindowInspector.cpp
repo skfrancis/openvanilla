@@ -4179,9 +4179,6 @@ static void WindowProperties_SpellDisplayWindow(CSidlScreenWnd* pSidlWindow, ImG
 	DisplayTextureAnimation("Drag Icon", pWindow->ptaDragIcons);
 	ColumnText("Display Type", "%d", pWindow->SpellDisplayType);
 	ColumnElapsedTimestamp("Last Update Time", pWindow->LastUpdateTime - EQGetTime());
-#if IS_LIVE_CLIENT
-	ColumnText("Unknown", "%d", pWindow->Unknown);
-#endif
 }
 
 // Property Viewer for Buffwindow
