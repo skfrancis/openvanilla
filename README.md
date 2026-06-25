@@ -3,7 +3,7 @@
 Open Vanilla is a compilation of multi-boxing software for EverQuest, nearly all based on [MacroQuest](https://github.com/macroquest/macroquest) with plugins and effort from the [RedGuides community](https://www.redguides.com). 
 
 ### Not a gnome? ⚙️
-The pre-built and supported version [Very Vanilla🍦](https://www.redguides.com/community/resources/redguides-launcher.1255/) is available for contributors and subscribers. If you're here to tinker, read on!
+The supported version [Very Vanilla🍦](https://www.redguides.com/community/) for contributors and subscribers is ready to use immediately. If you're here to tinker, read on!
 
 ## How To Build
 
@@ -12,12 +12,20 @@ The pre-built and supported version [Very Vanilla🍦](https://www.redguides.com
 * [Visual Studio 2022 Community](https://visualstudio.microsoft.com/downloads/)
 * [Git for Windows](https://git-scm.com/)
 
+> [!NOTE]
+> The examples below use `vv-live`; substitute the tag for your client:
+> * `vv-live` — EverQuest Live
+> * `vv-test` — EverQuest Test
+> * `vv-emu-rof2` — EverQuest RoF2 (Emulator)
+
 ### Check out the latest source code
 
 Create the checkout. This will create the subfolder **openvanilla** that contains a copy of the project.
 
 ```
 git clone https://github.com/RedGuides/openvanilla.git
+cd openvanilla
+git checkout vv-live
 ```
 
 Make sure that submodules are initialized. Move (cd) to the newly created **openvanilla** folder before executing this command.  If you have run this step already, you can skip it
@@ -36,7 +44,8 @@ MacroQuest is updated often, especially after a patch. Make sure before you buil
 
 If you already have the source, it is a good idea to make sure that you pull all the latest changes.
 ```
-git pull --rebase
+git fetch --tags --force
+git checkout vv-live
 ```
 
 Update submodules. This ensures that dependencies have the latest code.
