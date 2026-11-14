@@ -1,20 +1,13 @@
 <#
 .SYNOPSIS
     Brings the fork up to date with upstream and advances plugin submodules.
+    Does not build or regenerate the solution; build in Visual Studio afterward.
 
 .PARAMETER Rebase
     Rebase onto upstream/master instead of merging.
-
-.PARAMETER NoPush
-    Skip pushing to origin.
-
-.PARAMETER NoGenerate
-    Skip running gen_solution.ps1.
 #>
 param(
-    [switch]$Rebase,
-    [switch]$NoPush,
-    [switch]$NoGenerate
+    [switch]$Rebase
 )
 
 $ErrorActionPreference = 'Stop'
@@ -57,14 +50,4 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "==> Submodules already up to date" -ForegroundColor Green
 }
 
-if (-not $NoPush) {
-    Write-Host "==> Pushing to origin" -ForegroundColor Cyan
-    if ($Rebase) { Invoke-Git push --force-with-lease origin HEAD } else { Invoke-Git push origin HEAD }
-}
-
-if (-not $NoGenerate) {
-    Write-Host "==> Regenerating solution" -ForegroundColor Cyan
-    & "$PSScriptRoot\gen_solution.ps1"
-}
-
-Write-Host "==> Done" -ForegroundColor Green
+Write-Host "==> Done. Open the solution in Visual Studio to build." -ForegroundColor Green
