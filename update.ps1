@@ -51,3 +51,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "==> Done. Open the solution in Visual Studio to build." -ForegroundColor Green
+
+$ahead = git rev-list --count '@{u}..HEAD' 2>$null
+if ($LASTEXITCODE -eq 0 -and [int]$ahead -gt 0) {
+    $pushCmd = if ($Rebase) { 'git push --force-with-lease' } else { 'git push' }
+    Write-Host "==> REMINDER: $ahead local commit(s) not pushed. Run '$pushCmd' when ready." -ForegroundColor Yellow
+}
