@@ -59,7 +59,7 @@
 	branch = master
 [submodule "plugins/MQ2Boxr"]
 	path = plugins/MQ2Boxr
-	url = https://github.com/RedGuides/MQ2Boxr.git
+	url = https://github.com/Bishop-Software/MQ2Boxr.git
 	branch = master
 [submodule "plugins/MQ2Camera"]
 	path = plugins/MQ2Camera
